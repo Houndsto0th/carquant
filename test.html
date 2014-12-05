@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+</head>
+<body>
+
+<h1>Edmunds</h1>
+
+<select id="makeSelection"></select>
+<select id="modelSelection"></select>
+
+<hr/>
+
+<script>
+  // Load the SDK asynchronously
+  (function(d, s, id){
+    var js, sdkjs = d.getElementsByTagName(s)[0];
+    if (d.getElementById(id)) {return;}
+    js = d.createElement(s); js.id = id;
+    js.src = "./edmunds.js";
+    sdkjs.parentNode.insertBefore(js, sdkjs);
+  }(document, 'script', 'edmunds-jssdk'));
+</script>
+
+<script>
+
+  window.sdkAsyncInit = function() {
+    var res = new EDMUNDSAPI('aqtqbdzr9ehs27chq6tre3k7');
+
+
+    // get a list of all makes
+    // render the list as a drop down
+    // when the list is changed load the list of models
+    // render list of models
+
+
+    var makes = {};
+
+    // Fire the API call
+    res.api('/api/vehicle/v2/makes', {}, function(response) {
+
+      console.log(response);
+
+      var make_selection = document.getElementById('makeSelection');
+      var model_selection = document.getElementById('modelSelection');
+
+      response.makes.forEach(function(e, i) {
+        makes[e.id] = e;
+        make_selection.innerHTML += ('<option value="'+e.id+'">'+e.name+'</option>');
+      });
+
+      make_selection.onchange = function(e) {
+        var id = make_selection.options[make_selection.selectedIndex].value;
+        console.log(makes[id]);
+
+        model_selection.innerHTML = '';
+
+        makes[id].models.forEach(function(e, i) {
+          makes[e.id] = e;
+          model_selection.innerHTML += ('<option value="'+e.id+'">'+e.name+'</option>');
+        });
+
+      }
+    });
+  };
+
+//  window.onmousemove = function(e) {
+//    console.log(e.x, e.y);
+//  }
+
+
+</script>
+
+</body>
+</html>
