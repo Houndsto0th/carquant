@@ -1,16 +1,59 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <link type="text/css" rel="stylesheet" href="http://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.1/css/bootstrap.min.css"/>
 
 </head>
 <body>
 
-<h1>Edmunds</h1>
+<div class="container">
 
-<select id="makeSelection"></select>
-<select id="modelSelection"></select>
+  <h3>Edmunds API</h3>
 
-<hr/>
+  <hr/>
+
+  <div class="row">
+    <div class="col-sm-3">
+      <label>Make</label>
+      <select class="form-control" id="makeSelection"></select>
+    </div>
+    <div class="col-sm-3">
+      <label>Model</label>
+      <select class="form-control" id="modelSelection"></select>
+    </div>
+    <div class="col-sm-3">
+      <label>Year</label>
+      <select class="form-control" id="yearSelection"></select>
+    </div>
+  </div>
+
+  <hr/>
+
+  <br/>
+
+  <div class="row">
+    <div class="col-sm-8 col-sm-offset-2">
+      <h5>Pros</h5>
+      <p id="prosContent"></p>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-sm-8 col-sm-offset-2">
+      <h5>Cons</h5>
+      <p id="consContent"></p>
+    </div>
+  </div>
+
+  <br/>
+
+  <div class="row">
+    <div class="">
+      <div id="photos"></div>
+    </div>
+  </div>
+
+</div>
 
 <script>
   // Load the SDK asynchronously
@@ -25,8 +68,10 @@
 
 <script>
 
+  var edmunds;
+
   window.sdkAsyncInit = function() {
-    var res = new EDMUNDSAPI('aqtqbdzr9ehs27chq6tre3k7');
+    edmunds = new EDMUNDSAPI('aqtqbdzr9ehs27chq6tre3k7');
 
 
     // get a list of all makes
@@ -36,38 +81,109 @@
 
 
     var makes = {};
+    var models = {};
 
     // Fire the API call
-    res.api('/api/vehicle/v2/makes', {}, function(response) {
+    edmunds.api('/api/vehicle/v2/makes', {}, function(response) {
 
       console.log(response);
 
       var make_selection = document.getElementById('makeSelection');
       var model_selection = document.getElementById('modelSelection');
+      var year_selection = document.getElementById('yearSelection');
 
       response.makes.forEach(function(e, i) {
         makes[e.id] = e;
         make_selection.innerHTML += ('<option value="'+e.id+'">'+e.name+'</option>');
+
+        e.models.forEach(function(e1, i1) {
+          models[e1.id] = e1;
+        });
       });
 
+
+      var selected_make;
+      var selected_model;
+      var selected_year;
+
       make_selection.onchange = function(e) {
-        var id = make_selection.options[make_selection.selectedIndex].value;
-        console.log(makes[id]);
+        selected_make = make_selection.options[make_selection.selectedIndex].value;
 
         model_selection.innerHTML = '';
+        model_selection.innerHTML += ('<option value="">Select...</option>');
 
-        makes[id].models.forEach(function(e, i) {
+        makes[selected_make].models.forEach(function(e, i) {
           makes[e.id] = e;
           model_selection.innerHTML += ('<option value="'+e.id+'">'+e.name+'</option>');
         });
+      };
 
+
+      model_selection.onchange = function(e) {
+        selected_model = model_selection.options[model_selection.selectedIndex].value;
+
+        year_selection.innerHTML = '';
+        year_selection.innerHTML += ('<option value="">Select...</option>');
+
+        models[selected_model].years.forEach(function(e, i) {
+          models[e.id] = e;
+          year_selection.innerHTML += ('<option value="'+e.year+'">'+e.year+'</option>');
+        });
+      };
+
+
+
+      year_selection.onchange = function(e) {
+        selected_year = year_selection.options[year_selection.selectedIndex].value;
+
+        getVehicle(makes[selected_make].niceName,
+                models[selected_model].niceName,
+                selected_year);
       }
+
     });
   };
 
-//  window.onmousemove = function(e) {
-//    console.log(e.x, e.y);
-//  }
+  var getVehicle = function(make, model, year) {
+    console.log(make, model, year);
+
+    var url;
+    var opts;
+
+    url = ['/api/vehicle/v2/', make, '/', model, '/', year].join("");
+    edmunds.api(url, {}, function(response) {
+      console.log(response);
+
+      var styleid = response.styles[0].id;
+
+      url = '/v1/api/vehiclephoto/service/findphotosbystyleid';
+      edmunds.api(url, {styleId:styleid}, function(response) {
+        console.log(response);
+
+        var photos_container = document.getElementById('photos');
+        photos_container.innerHTML = '';
+
+        response.forEach(function(e, i) {
+          photos_container.innerHTML += '<img class="img-thumbnail" style="height:80px;" height="80px" src="http://media.ed.edmunds-media.com'+e.photoSrcs[0]+'"/>';
+        })
+      });
+    });
+
+
+    url = "/v1/content/editorreviews";
+    opts = {
+      make: make,
+      model: model,
+      year: year
+    };
+
+    edmunds.api(url, opts, function(response) {
+      console.log(response);
+
+      document.getElementById('prosContent').innerHTML = response.editorial.pro;
+      document.getElementById('consContent').innerHTML = response.editorial.con;
+    });
+  };
 
 
 </script>
