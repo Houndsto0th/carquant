@@ -25,6 +25,10 @@
       <label>Year</label>
       <select class="form-control" id="yearSelection"></select>
     </div>
+    <div class="col-sm-3">
+      <label>Style</label>
+      <select class="form-control" id="styleSelection"></select>
+    </div>
   </div>
 
   <hr/>
@@ -68,10 +72,15 @@
 
 <script>
 
+  AVERAGE_MILES_PER_YEAR = 15130;
+
   var edmunds;
 
   window.sdkAsyncInit = function() {
     edmunds = new EDMUNDSAPI('aqtqbdzr9ehs27chq6tre3k7');
+
+
+    getMaintenance("200429366");
 
 
     // get a list of all makes
@@ -139,7 +148,7 @@
         getVehicle(makes[selected_make].niceName,
                 models[selected_model].niceName,
                 selected_year);
-      }
+      };
 
     });
   };
@@ -167,6 +176,26 @@
           photos_container.innerHTML += '<img class="img-thumbnail" style="height:80px;" height="80px" src="http://media.ed.edmunds-media.com'+e.photoSrcs[0]+'"/>';
         })
       });
+
+
+
+      var style_selection = document.getElementById('styleSelection');
+
+      style_selection.innerHTML = '';
+      style_selection.innerHTML += ('<option value="">Select...</option>');
+
+      response.styles.forEach(function(e, i) {
+        style_selection.innerHTML += ('<option value="'+e.id+'">'+e.name+'</option>');
+      });
+
+      style_selection.onchange = function(e) {
+        var styleId = style_selection.options[style_selection.selectedIndex].value;
+        getTrueCost(styleId, "80020");
+      };
+
+
+      getMaintenance(response.id);
+
     });
 
 
@@ -185,6 +214,31 @@
     });
   };
 
+  var getMaintenance = function(id) {
+    var url = "/v1/api/maintenance/actionrepository/findbymodelyearid";
+    edmunds.api(url, {modelyearid:id}, function(response) {
+
+      response.actionHolder.forEach(function(e, i) {
+        if(!e.intervalMonth) {
+          e.intervalMonth = e.intervalMileage / AVERAGE_MILES_PER_YEAR * 12
+        }
+      });
+
+      console.log(response);
+    });
+  };
+
+  var getTrueCost = function(style, zip) {
+//    https://api.edmunds.com/v1/api/tco/newtruecosttoownbystyleidandzip/{style ID}/{zipcode}?fmt=json&api_key={api key}
+
+    var url = ["/v1/api/tco/newtruecosttoownbystyleidandzip/",style,"/",zip].join('');
+    edmunds.api(url, {}, function(response) {
+      console.log(response);
+    });
+  };
+
+
+//  https://api.edmunds.com/v1/api/tco/newtruecosttoownbystyleidandzip/{style ID}/80020?fmt=json&api_key=aqtqbdzr9ehs27chq6tre3k7
 
 </script>
 
